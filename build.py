@@ -16,4 +16,8 @@ if __name__ == '__main__':
     # Post-processing: Make sure CNAME or other static files are copied if needed
     # Note: Flask-Frozen usually copies 'static' folder automatically
     
+    # Create .nojekyll to disable GitHub Pages Jekyll processing
+    with open(os.path.join(app.config['FREEZER_DESTINATION'], '.nojekyll'), 'w') as f:
+        f.write('')
+    
     print("Build complete. Output in 'build/' directory.")
