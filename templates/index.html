@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁連結轉運站 | Link Aggregation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <header class="newsprint-header">
+            <div class="header-meta">
+                <span>第一版 Vol. 1.0</span>
+                <span>台北發行 Taipei Edition</span>
+                <span id="date-display">2026-01-05</span>
+            </div>
+            <h1 class="title-display">網頁連結轉運站</h1>
+            <p class="subtitle">"所有值得一點的連結"</p>
+        </header>
+
+        <!-- Notice Board Section -->
+        <section class="notice-board-section">
+            <div class="notice-label">重要事項提醒</div>
+            <div class="notice-content" id="noticeDisplay">
+                <!-- Javascript will load content here -->
+                尚無重要事項...
+            </div>
+            <div class="notice-edit-group editor-only" style="display: none;">
+                <input type="text" id="noticeInput" class="notice-input" placeholder="更新公告內容...">
+                <button type="button" id="saveNoticeBtn" class="notice-btn">儲存</button>
+                <button type="button" id="clearNoticeBtn" class="notice-btn"
+                    style="color: var(--editorial-red);">清除</button>
+            </div>
+        </section>
+
+        <section class="input-section editor-only" style="display: none;">
+            <div class="input-group">
+                <input type="text" id="urlInput" class="editorial-input" placeholder="在此貼上網址..." autocomplete="off">
+                <input type="text" id="linkNoteInput" class="editorial-input" placeholder="連結注意事項 (如: 1/15 需閱讀)..."
+                    autocomplete="off">
+            </div>
+            <button type="button" id="addBtn" class="editorial-btn">發布連結</button>
+        </section>
+
+        <main id="cardsContainer" class="news-grid">
+            <!-- Dynamic Content -->
+            <div class="loading-indicator" style="display: none;">
+                [ 系統狀態：正在擷取元數據... ]
+            </div>
+        </main>
+
+        <footer>
+            <span>&copy; 2026 網頁連結轉運站專案. 數位印刷發行</span>
+            <br><br>
+            <a href="/login" id="authLink"
+                style="color: var(--neutral-500); text-decoration: none; font-size: 0.7rem;">[ 編輯者登入 ]</a>
+        </footer>
+    </div>
+
+    <!-- System Status Toast -->
+    <div id="systemStatus" style="display: none;"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirmModal" class="modal-overlay" style="display: none;">
+        <div class="modal-box">
+            <h3 class="modal-title">確認操作</h3>
+            <p id="modalMessage" class="modal-message">確定要執行此動作嗎？</p>
+            <div class="modal-actions">
+                <button id="modalCancelBtn" class="notice-btn">取消</button>
+                <button id="modalConfirmBtn" class="notice-btn"
+                    style="background: var(--ink-black); color: white;">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Simple script to set today's date in proper format
+        const dateDisplay = document.getElementById('date-display');
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+        dateDisplay.textContent = new Date().toLocaleDateString('zh-TW', options);
+    </script>
+</body>
+
+</html>

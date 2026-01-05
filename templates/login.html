@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>編輯者登入 | Editor Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+            border: 1px solid var(--ink-black);
+            padding: 2rem;
+            background: var(--bg-paper);
+            box-shadow: 8px 8px 0 0 var(--ink-black);
+        }
+
+        .login-title {
+            font-family: var(--font-serif-display);
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="newsprint-header" style="border-bottom: none; padding-bottom: 0;">
+            <div class="header-meta">
+                <span>System Access</span>
+                <span>Restricted Area</span>
+            </div>
+        </header>
+
+        <div class="login-container">
+            <h1 class="login-title">編輯者登入</h1>
+            <div class="login-form">
+                <input type="password" id="passwordInput" class="editorial-input" placeholder="請輸入密碼"
+                    style="text-align: center;">
+                <button id="loginBtn" class="editorial-btn">驗證身分</button>
+            </div>
+            <p id="errorMsg"
+                style="color: var(--editorial-red); margin-top: 1rem; display: none; font-family: var(--font-mono); font-size: 0.8rem;">
+            </p>
+        </div>
+
+        <footer>
+            <a href="/" style="color: var(--ink-black); text-decoration: none;">&larr; 返回首頁</a>
+        </footer>
+    </div>
+
+    <script>
+        const loginBtn = document.getElementById('loginBtn');
+        const passwordInput = document.getElementById('passwordInput');
+        const errorMsg = document.getElementById('errorMsg');
+
+        async function performLogin() {
+            const password = passwordInput.value;
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = '/';
+                } else {
+                    errorMsg.textContent = data.message || '登入失敗';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMsg.textContent = '系統錯誤';
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        loginBtn.addEventListener('click', performLogin);
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performLogin();
+        });
+    </script>
+</body>
+
+</html>
