@@ -59,11 +59,15 @@ def index():
     # "is_frozen" context variable helps template distinguish logic if needed
     return render_template('index.html', links=links, notices=notices, is_frozen=False)
 
+import hashlib
+
 @app.route('/login.html')
 def login():
-    # Pass the password to the template so it can be baked into the static file
+    # Get password from env
     pwd = os.environ.get('EDITOR_PASSWORD', 'admin')
-    return render_template('login.html', editor_password=pwd)
+    # Hash it so plain text isn't in source code
+    pwd_hash = hashlib.sha256(pwd.encode()).hexdigest()
+    return render_template('login.html', editor_password_hash=pwd_hash)
 
 # --- API for Local CMS ---
 @app.route('/api/links', methods=['GET'])

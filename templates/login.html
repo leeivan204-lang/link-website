@@ -64,13 +64,19 @@
         const passwordInput = document.getElementById('passwordInput');
         const errorMsg = document.getElementById('errorMsg');
 
-        // Hardcoded password for client-side check (Baked from .env)
-        const EDITOR_PASSWORD = "{{ editor_password }}";
+        // Hashed password (SHA-256) baked from .env
+        const EDITOR_PASSWORD_HASH = "{{ editor_password_hash }}";
 
-        function performLogin() {
+        async function performLogin() {
             const password = passwordInput.value;
 
-            if (password === EDITOR_PASSWORD) {
+            // Hash the input to compare
+            const msgBuffer = new TextEncoder().encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            if (hashHex === EDITOR_PASSWORD_HASH) {
                 localStorage.setItem('is_editor', 'true');
                 window.location.href = 'index.html';
             } else {

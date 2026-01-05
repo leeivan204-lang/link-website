@@ -34,6 +34,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build Static Site
+        env:
+          EDITOR_PASSWORD: ${{ secrets.EDITOR_PASSWORD }}
         run: |
           python build.py
 
