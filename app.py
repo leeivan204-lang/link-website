@@ -66,45 +66,21 @@ def get_links():
 def add_link():
     data = request.json
     url = data.get('url')
+    title = data.get('title')
+    description = data.get('description', '')
+    image = data.get('image', '')
     note = data.get('note', '') # Get note from request
     
-    if not url:
-        return jsonify({'error': 'URL is required'}), 400
+    if not url or not title:
+        return jsonify({'error': 'URL and Title are required'}), 400
 
-    # 1. Scrape Metadata
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=5)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        title = soup.title.string if soup.title else url
-        description = ""
-        meta_desc = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
-        if meta_desc:
-            description = meta_desc.get('content', '')
-        
-        # Simple image extraction (og:image or first img)
-        image = ""
-        meta_image = soup.find('meta', attrs={'property': 'og:image'})
-        if meta_image:
-            image = meta_image.get('content', '')
-            
-        # Favicon extraction
-        favicon = ""
-        link_icon = soup.find('link', rel='icon') or soup.find('link', rel='shortcut icon')
-        if link_icon:
-            favicon = link_icon.get('href')
-            if favicon and not favicon.startswith('http'):
-                from urllib.parse import urljoin
-                favicon = urljoin(url, favicon)
-
-    except Exception as e:
-        print(f"Scraping failed: {e}")
-        title = url
-        description = "No description available."
-        image = ""
-        favicon = ""
+    # 1. No Scraping - Use provided data directly
+    # Favicon: basic check if we want to try to guess or just leave empty/client provided?
+    # For now, let's assume no auto-favicon unless client sends it, or just use a default.
+    # The original plan was "Manual Input", so we take what is given.
+    favicon = "" 
+    if not image:
+         image = ""
 
     # 2. Smart Notice Logic
     # Check for date pattern (e.g., 1/15, 2026-01-01)

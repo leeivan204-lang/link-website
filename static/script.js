@@ -242,15 +242,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Link Logic ---
     addBtn.addEventListener('click', () => {
         const url = urlInput.value.trim();
+        const title = document.getElementById('titleInput').value.trim();
+        const desc = document.getElementById('descInput').value.trim();
+        const img = document.getElementById('imgInput').value.trim();
         const note = linkNoteInput ? linkNoteInput.value.trim() : '';
-        if (url) addLink(url, note);
+
+        if (url && title) {
+            addLink(url, title, desc, img, note);
+        } else {
+            showStatus('網址與標題為必填項目');
+        }
     });
 
     urlInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
+            // Optional: Move focus to next input instead of submit?
+            document.getElementById('titleInput').focus();
+        }
+    });
+
+    // Add keypress for title to trigger add if wanted, or just rely on button
+    document.getElementById('titleInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
             const url = urlInput.value.trim();
+            const title = document.getElementById('titleInput').value.trim();
+            const desc = document.getElementById('descInput').value.trim();
+            const img = document.getElementById('imgInput').value.trim();
             const note = linkNoteInput ? linkNoteInput.value.trim() : '';
-            if (url) addLink(url, note);
+            if (url && title) addLink(url, title, desc, img, note);
         }
     });
 
@@ -264,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function addLink(url, note) {
+    async function addLink(url, title, desc, img, note) {
         loadingState.style.display = 'block';
         urlInput.disabled = true;
         addBtn.disabled = true;
@@ -274,17 +293,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/links', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, note: note })
+                body: JSON.stringify({
+                    url: url,
+                    title: title,
+                    description: desc,
+                    image: img,
+                    note: note
+                })
             });
 
             if (response.ok) {
                 showStatus('發布成功');
                 urlInput.value = '';
+                document.getElementById('titleInput').value = '';
+                document.getElementById('descInput').value = '';
+                document.getElementById('imgInput').value = '';
                 if (linkNoteInput) linkNoteInput.value = '';
                 fetchLinks();
                 fetchNotice();
             } else {
-                showStatus('發布失敗，請確認網址');
+                showStatus('發布失敗，請確認輸入');
             }
         } catch (error) {
             console.error('Error adding link:', error);
