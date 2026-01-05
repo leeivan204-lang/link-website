@@ -24,10 +24,24 @@
 4. Render 會自動讀取 `render.yaml` 進行設定。
 5. 部署完成後即可使用。
 
-### CI/CD 自動化
-本專案包含 GitHub Actions (`.github/workflows/ci_cd.yml`)：
-- 每次 Push 到 `main` 分支時，會自動檢查 Python 環境與依賴安裝。
-- 若設定了 `RENDER_DEPLOY_HOOK_URL` Secret，可自動觸發 Render 重新部署。
+### CI/CD 自動化設定說明
+本專案已內建 GitHub Actions 流程，可實現「通過測試後自動部署」。
+
+#### 1. 取得 Render Deploy Hook
+1. 進入 Render Dashboard，點選您的 Web Service。
+2. 進入 **Settings** 頁面。
+3. 捲動至 **Deploy Hook** 區塊。
+4. 複製 Deploy Hook URL (網址格式應為 `https://api.render.com/deploy/srv-...`).
+
+#### 2. 設定 GitHub Secrets
+1. 回到 GitHub Repository 頁面。
+2. 點選 **Settings** > **Secrets and variables** > **Actions**。
+3. 點選 **New repository secret**。
+4. **Name**: 輸入 `RENDER_DEPLOY_HOOK_URL`。
+5. **Secret**: 貼上剛剛複製的 Render Deploy Hook URL。
+6. 點選 **Add secret**。
+
+設定完成後，每次 Push 到 `main` 分支，GitHub Action 就會自動執行測試，通過後觸發 Render 部署。
 
 ## 📂 專案結構
 ```
