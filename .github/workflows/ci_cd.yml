@@ -28,15 +28,37 @@ jobs:
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
-  deploy-to-render:
+  deploy-to-github-pages:
     needs: build-and-test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
-      - name: Trigger Render Deploy
-        # Only run if the DEPLOY_HOOK env var is set
-        if: env.DEPLOY_HOOK != ''
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          
+      - name: Install dependencies
         run: |
-          curl -X POST "$DEPLOY_HOOK"
+          pip install -r requirements.txt
+          
+      - name: Build Static Site
+        run: python build.py
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: '.'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

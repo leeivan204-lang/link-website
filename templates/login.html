@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>編輯者登入 | Editor Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="./static/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .login-container {
@@ -55,7 +55,7 @@
         </div>
 
         <footer>
-            <a href="/" style="color: var(--ink-black); text-decoration: none;">&larr; 返回首頁</a>
+            <a href="index.html" style="color: var(--ink-black); text-decoration: none;">&larr; 返回首頁</a>
         </footer>
     </div>
 
@@ -64,26 +64,19 @@
         const passwordInput = document.getElementById('passwordInput');
         const errorMsg = document.getElementById('errorMsg');
 
-        async function performLogin() {
-            const password = passwordInput.value;
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: password })
-                });
-                const data = await response.json();
+        // Hardcoded password for client-side check (Baked from .env)
+        const EDITOR_PASSWORD = "{{ editor_password }}";
 
-                if (data.success) {
-                    window.location.href = '/';
-                } else {
-                    errorMsg.textContent = data.message || '登入失敗';
-                    errorMsg.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                errorMsg.textContent = '系統錯誤';
+        function performLogin() {
+            const password = passwordInput.value;
+
+            if (password === EDITOR_PASSWORD) {
+                localStorage.setItem('is_editor', 'true');
+                window.location.href = 'index.html';
+            } else {
+                errorMsg.textContent = '密碼錯誤';
                 errorMsg.style.display = 'block';
+                localStorage.removeItem('is_editor');
             }
         }
 

@@ -1,42 +1,19 @@
-# Environment variables
-.env
-.flaskenv
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.manifest
-*.spec
 venv/
+.venv/
 env/
-dist/
+
+# Distribution
 build/
+dist/
 
-# Database / Data
-instance/
-*.sqlite
-links.json
-notice.txt
-*.db
+# Environment Variables
+.env
 
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
+# Text Editors
 .vscode/
 .idea/
 *.swp
-
-# Unit tests / coverage reports
-.tox/
-.coverage
-htmlcov/
-
-
-# Data & Logs
-links.json
-notice.txt
-*.log
-instance/

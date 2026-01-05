@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>網頁連結轉運站 | Link Aggregation</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="./static/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -26,12 +26,12 @@
         <section class="notice-board-section">
             <div class="notice-label">重要事項提醒</div>
             <div class="notice-content" id="noticeDisplay">
-                <!-- Javascript will load content here -->
-                尚無重要事項...
+                <span style="color: var(--neutral-500); font-weight: normal; font-size: 1rem;">(正在讀取公告...)</span>
             </div>
+
             <div class="notice-edit-group editor-only" style="display: none;">
                 <input type="text" id="noticeInput" class="notice-input" placeholder="更新公告內容...">
-                <button type="button" id="saveNoticeBtn" class="notice-btn">儲存</button>
+                <button type="button" id="saveNoticeBtn" class="notice-btn">新增</button>
                 <button type="button" id="clearNoticeBtn" class="notice-btn"
                     style="color: var(--editorial-red);">清除</button>
             </div>
@@ -44,7 +44,15 @@
                     autocomplete="off">
                 <input type="text" id="descInput" class="editorial-input" placeholder="網站描述/備註 (選填)..."
                     autocomplete="off">
-                <input type="text" id="imgInput" class="editorial-input" placeholder="圖片網址 (選填)..." autocomplete="off">
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="imgInput" class="editorial-input" placeholder="圖片網址 (選填)..."
+                        autocomplete="off" style="flex: 1;">
+                    <label for="imgUpload" class="editorial-btn"
+                        style="width: auto; padding: 0 1rem; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="imgUpload" accept="image/*" style="display: none;">
+                </div>
                 <input type="text" id="linkNoteInput" class="editorial-input" placeholder="連結注意事項 (如: 1/15 需閱讀)..."
                     autocomplete="off">
             </div>
@@ -52,16 +60,15 @@
         </section>
 
         <main id="cardsContainer" class="news-grid">
-            <!-- Dynamic Content -->
-            <div class="loading-indicator" style="display: none;">
-                [ 系統狀態：正在擷取元數據... ]
+            <div class="loading-indicator" id="js-loading-indicator">
+                [ 系統狀態：正在讀取本機資料庫... ]
             </div>
         </main>
 
         <footer>
             <span>&copy; 2026 網頁連結轉運站專案. 數位印刷發行</span>
             <br><br>
-            <a href="/login" id="authLink"
+            <a href="login.html" id="authLink"
                 style="color: var(--neutral-500); text-decoration: none; font-size: 0.7rem;">[ 編輯者登入 ]</a>
         </footer>
     </div>
@@ -82,7 +89,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="./static/script.js"></script>
     <script>
         // Simple script to set today's date in proper format
         const dateDisplay = document.getElementById('date-display');

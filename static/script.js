@@ -1,16 +1,101 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Selectors ---
     const urlInput = document.getElementById('urlInput');
     const linkNoteInput = document.getElementById('linkNoteInput');
     const addBtn = document.getElementById('addBtn');
     const cardsContainer = document.getElementById('cardsContainer');
-    const loadingState = document.querySelector('.loading-indicator');
+    const loadingState = document.getElementById('js-loading-indicator');
     const noticeDisplay = document.getElementById('noticeDisplay');
     const noticeInput = document.getElementById('noticeInput');
     const saveNoticeBtn = document.getElementById('saveNoticeBtn');
     const authLink = document.getElementById('authLink');
     const statusDiv = document.getElementById('systemStatus');
 
+    // --- State ---
     let currentUserIsEditor = false;
+    let linksData = [];
+    let noticesData = [];
+
+    // --- Initialization ---
+    init();
+
+    function init() {
+        checkAuth();
+        loadFromStorage();
+        renderLinks();
+        renderNotices();
+    }
+
+    function loadFromStorage() {
+        // Load Links
+        const storedLinks = localStorage.getItem('site_links');
+        if (storedLinks) {
+            linksData = JSON.parse(storedLinks);
+        } else {
+            linksData = [];
+        }
+
+        // Load Notices
+        const storedNotices = localStorage.getItem('site_notices');
+        if (storedNotices) {
+            noticesData = JSON.parse(storedNotices);
+        } else {
+            noticesData = [];
+        }
+
+        // Hide loading
+        if (loadingState) loadingState.style.display = 'none';
+    }
+
+    function saveLinksToStorage() {
+        localStorage.setItem('site_links', JSON.stringify(linksData));
+    }
+
+    function saveNoticesToStorage() {
+        localStorage.setItem('site_notices', JSON.stringify(noticesData));
+    }
+
+    // --- Auth Logic ---
+    function checkAuth() {
+        // Simple client-side check from LocalStorage set by login.html
+        currentUserIsEditor = localStorage.getItem('is_editor') === 'true';
+
+        updateUIForAuth();
+
+        if (currentUserIsEditor) {
+            authLink.textContent = '[ 登出系統 ]';
+            authLink.href = '#';
+            authLink.onclick = (e) => {
+                e.preventDefault();
+                logout();
+            };
+        } else {
+            authLink.textContent = '[ 編輯者登入 ]';
+            authLink.href = 'login.html';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('is_editor');
+        window.location.reload();
+    }
+
+    function updateUIForAuth() {
+        // Update UI visibility
+        document.querySelectorAll('.editor-only').forEach(el => {
+            el.style.display = currentUserIsEditor ? 'flex' : 'none';
+        });
+        // Update specific elements that might be inline
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.style.display = currentUserIsEditor ? 'flex' : 'none';
+        });
+        document.querySelectorAll('.notice-delete-btn').forEach(btn => {
+            btn.style.display = currentUserIsEditor ? 'inline-flex' : 'none';
+        });
+        document.querySelectorAll('.edit-note-btn').forEach(btn => {
+            btn.style.display = currentUserIsEditor ? 'inline-block' : 'none';
+        });
+    }
 
     // --- Utility: Status Message ---
     function showStatus(msg, autoHide = true) {
@@ -33,9 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const cancelBtn = document.getElementById('modalCancelBtn');
 
             msgEl.textContent = message;
-            modal.style.display = 'flex'; // Use flex to center
+            modal.style.display = 'flex';
 
-            // Define cleanup to remove listeners after choice
             const cleanup = () => {
                 modal.style.display = 'none';
                 confirmBtn.onclick = null;
@@ -54,159 +138,77 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Core: Event Delegation (Fixes event binding issues) ---
+    // --- Core: Event Delegation ---
     document.addEventListener('click', async (e) => {
         const target = e.target;
 
-        // 1. Handle Clear Notice Button
+        // 1. Clear Notice
         const clearBtn = target.closest('#clearNoticeBtn');
         if (clearBtn) {
             e.preventDefault();
             const confirmed = await showConfirm('確定要清除所有公告嗎？');
             if (confirmed) {
-                showStatus('正在清除...', false);
-                await clearAllNotices();
-            } else {
-                showStatus('取消清除');
+                noticesData = [];
+                saveNoticesToStorage();
+                renderNotices();
+                showStatus('公告已清除');
             }
             return;
         }
 
-        // 2. Handle Link Delete Button (.delete-btn)
-        const deleteBtn = target.closest('.delete-btn'); // Matches text-based button now
+        // 2. Link Delete
+        const deleteBtn = target.closest('.delete-btn');
         if (deleteBtn) {
             e.preventDefault();
             e.stopPropagation();
-
-            const linkId = deleteBtn.getAttribute('data-id');
+            const linkId = parseInt(deleteBtn.getAttribute('data-id'));
             if (linkId) {
                 const confirmed = await showConfirm('確定要永久刪除這個連結嗎？');
                 if (confirmed) {
-                    showStatus('刪除中...', false);
-                    await deleteLink(linkId);
-                } else {
-                    showStatus('取消刪除');
+                    linksData = linksData.filter(l => l.id !== linkId);
+                    saveLinksToStorage();
+                    renderLinks();
+                    showStatus('刪除成功');
                 }
-            } else {
-                console.error("Delete button missing data-id");
-                showStatus('錯誤: 無法識別連結 ID');
             }
             return;
         }
-
-        // 3. Handle Other Buttons if needed (Editor Login Log out is handled by onclick attr or specific bind)
     });
 
-
-    // Load initial data
-    checkAuth();
-    fetchLinks();
-    fetchNotice();
-
-    async function checkAuth() {
-        try {
-            const response = await fetch('/api/auth/status');
-            const data = await response.json();
-            currentUserIsEditor = data.is_editor;
-
-            // Update UI visibility
-            document.querySelectorAll('.editor-only').forEach(el => {
-                el.style.display = currentUserIsEditor ? 'flex' : 'none';
-            });
-            // Update individual buttons
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.style.display = currentUserIsEditor ? 'flex' : 'none';
-            });
-            document.querySelectorAll('.notice-delete-btn').forEach(btn => {
-                btn.style.display = currentUserIsEditor ? 'inline-flex' : 'none';
-            });
-            document.querySelectorAll('.edit-note-btn').forEach(btn => {
-                btn.style.display = currentUserIsEditor ? 'inline-block' : 'none';
-            });
-
-            if (currentUserIsEditor) {
-                authLink.textContent = '[ 登出系統 ]';
-                authLink.href = '#';
-                authLink.onclick = (e) => {
-                    e.preventDefault();
-                    logout();
-                };
-            } else {
-                authLink.textContent = '[ 編輯者登入 ]';
-                authLink.href = '/login';
-            }
-        } catch (error) {
-            console.error('Auth check error:', error);
-        }
-    }
-
-    async function logout() {
-        await fetch('/api/logout', { method: 'POST' });
-        window.location.reload();
-    }
 
     // --- Notice Logic ---
     saveNoticeBtn.addEventListener('click', () => {
         const text = noticeInput.value.trim();
-        if (text) addNotice(text);
+        if (text) {
+            addNotice(text);
+            noticeInput.value = '';
+        }
     });
 
-    // clearNoticeBtn logic is now handled by delegation above
-
-    async function fetchNotice() {
-        try {
-            const response = await fetch('/api/notice');
-            const data = await response.json();
-            renderNotices(data.notices || []);
-        } catch (error) {
-            console.error('Error fetching notice:', error);
-        }
+    function addNotice(text) {
+        const newNotice = {
+            id: generateUUID(),
+            content: text,
+            created_at: Date.now() / 1000
+        };
+        noticesData.push(newNotice);
+        saveNoticesToStorage();
+        renderNotices();
     }
 
-    async function addNotice(text) {
-        try {
-            const response = await fetch('/api/notice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            });
-            const data = await response.json();
-            if (data.success) {
-                renderNotices(data.notices);
-                noticeInput.value = '';
-            }
-        } catch (error) {
-            console.error('Error adding notice:', error);
-            showStatus('無法新增公告');
-        }
+    function deleteNotice(id) {
+        noticesData = noticesData.filter(n => n.id !== id);
+        saveNoticesToStorage();
+        renderNotices();
     }
 
-    async function deleteNotice(id) {
-        try {
-            const response = await fetch(`/api/notice/${id}`, { method: 'DELETE' });
-            const data = await response.json();
-            if (data.success) {
-                renderNotices(data.notices);
-            }
-        } catch (error) {
-            console.error('Error deleting notice:', error);
-        }
-    }
+    // Allow deleting notice via onclick in rendered HTML, but use delegation if possible.
+    // Since we re-render, delegation is cleaner, but let's stick to the inline onclick binding used below for simplicity in porting.
 
-    async function clearAllNotices() {
-        try {
-            const response = await fetch('/api/notice/clear', { method: 'POST' });
-            const data = await response.json();
-            renderNotices(data.notices);
-            showStatus('公告已清除');
-        } catch (error) {
-            console.error('Error clearing notices:', error);
-            showStatus('清除失敗');
-        }
-    }
+    function renderNotices() {
+        if (!noticeDisplay) return;
 
-    function renderNotices(notices) {
-        if (!notices || notices.length === 0) {
+        if (!noticesData || noticesData.length === 0) {
             noticeDisplay.innerHTML = '<span style="color: var(--neutral-500); font-weight: normal; font-size: 1rem;">(暫無重要公告)</span>';
             return;
         }
@@ -218,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ul.style.padding = '0';
         ul.style.margin = '0';
 
-        notices.forEach(notice => {
+        noticesData.forEach(notice => {
             const li = document.createElement('li');
             li.className = 'notice-item';
 
@@ -231,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.className = 'notice-delete-btn editor-only';
             btn.style.display = currentUserIsEditor ? 'inline-flex' : 'none';
             btn.type = 'button';
-            btn.onclick = () => deleteNotice(notice.id); // Keep this direct bind for now as it works
+            btn.onclick = () => deleteNotice(notice.id);
 
             li.appendChild(btn);
             ul.appendChild(li);
@@ -239,113 +241,73 @@ document.addEventListener('DOMContentLoaded', () => {
         noticeDisplay.appendChild(ul);
     }
 
+
     // --- Link Logic ---
-    addBtn.addEventListener('click', () => {
+    addBtn.addEventListener('click', handleAddLink);
+
+    // Keypress for inputs
+    [urlInput, document.getElementById('titleInput')].forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (input.id === 'urlInput') document.getElementById('titleInput').focus();
+                else handleAddLink();
+            }
+        });
+    });
+
+    function handleAddLink() {
         const url = urlInput.value.trim();
         const title = document.getElementById('titleInput').value.trim();
         const desc = document.getElementById('descInput').value.trim();
         const img = document.getElementById('imgInput').value.trim();
         const note = linkNoteInput ? linkNoteInput.value.trim() : '';
 
-        if (url && title) {
-            addLink(url, title, desc, img, note);
-        } else {
+        if (!url || !title) {
             showStatus('網址與標題為必填項目');
+            return;
         }
-    });
 
-    urlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            // Optional: Move focus to next input instead of submit?
-            document.getElementById('titleInput').focus();
-        }
-    });
+        const newId = linksData.length > 0 ? Math.max(...linksData.map(l => l.id)) + 1 : 1;
 
-    // Add keypress for title to trigger add if wanted, or just rely on button
-    document.getElementById('titleInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const url = urlInput.value.trim();
-            const title = document.getElementById('titleInput').value.trim();
-            const desc = document.getElementById('descInput').value.trim();
-            const img = document.getElementById('imgInput').value.trim();
-            const note = linkNoteInput ? linkNoteInput.value.trim() : '';
-            if (url && title) addLink(url, title, desc, img, note);
+        // Smart Notice Logic: Check for date pattern
+        // Python: r'(\d{1,4}[-/]\d{1,2})'
+        const datePattern = /(\d{1,4}[-\/]\d{1,2})/;
+        if (note && datePattern.test(note)) {
+            const noticeLinkHtml = ` <a href='${url}' target='_blank' style='text-decoration: underline; color: inherit;'>[${title}]</a>`;
+            addNotice(note + noticeLinkHtml);
         }
-    });
 
-    async function fetchLinks() {
-        try {
-            const response = await fetch('/api/links');
-            const links = await response.json();
-            renderLinks(links);
-        } catch (error) {
-            console.error('Error fetching links:', error);
-        }
+        const newLink = {
+            id: newId,
+            url: url,
+            title: title,
+            description: desc,
+            image: img || '',
+            favicon: '',
+            note: note
+        };
+
+        linksData.push(newLink);
+        saveLinksToStorage();
+        renderLinks();
+
+        // Clear inputs
+        urlInput.value = '';
+        document.getElementById('titleInput').value = '';
+        document.getElementById('descInput').value = '';
+        document.getElementById('imgInput').value = '';
+        if (linkNoteInput) linkNoteInput.value = '';
+
+        showStatus('發布成功');
+        urlInput.focus();
     }
 
-    async function addLink(url, title, desc, img, note) {
-        loadingState.style.display = 'block';
-        urlInput.disabled = true;
-        addBtn.disabled = true;
-        addBtn.textContent = '發布中...';
-
-        try {
-            const response = await fetch('/api/links', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url: url,
-                    title: title,
-                    description: desc,
-                    image: img,
-                    note: note
-                })
-            });
-
-            if (response.ok) {
-                showStatus('發布成功');
-                urlInput.value = '';
-                document.getElementById('titleInput').value = '';
-                document.getElementById('descInput').value = '';
-                document.getElementById('imgInput').value = '';
-                if (linkNoteInput) linkNoteInput.value = '';
-                fetchLinks();
-                fetchNotice();
-            } else {
-                showStatus('發布失敗，請確認輸入');
-            }
-        } catch (error) {
-            console.error('Error adding link:', error);
-            showStatus('系統錯誤');
-        } finally {
-            loadingState.style.display = 'none';
-            urlInput.disabled = false;
-            addBtn.disabled = false;
-            addBtn.textContent = '發布連結';
-            urlInput.focus();
-        }
-    }
-
-    async function deleteLink(id) {
-        try {
-            const response = await fetch(`/api/links/${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                showStatus('刪除成功');
-                fetchLinks();
-            } else {
-                showStatus('刪除失敗');
-            }
-        } catch (error) {
-            console.error('Error deleting link:', error);
-            showStatus('系統錯誤');
-        }
-    }
-
-    function renderLinks(links) {
+    function renderLinks() {
+        if (!cardsContainer) return;
         cardsContainer.innerHTML = '';
-        cardsContainer.appendChild(loadingState);
+        // Note: loadingState is removed/hidden by init()
 
-        const sortedLinks = [...links].reverse();
+        const sortedLinks = [...linksData].reverse();
         sortedLinks.forEach(link => {
             const card = createCardElement(link);
             cardsContainer.appendChild(card);
@@ -361,8 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
         a.target = "_blank";
         a.className = 'news-card';
 
-        // Delete Button: Restored to Old UI (Overlay Red X)
-        // Note: Logic handles this via global delegation (closest .delete-btn)
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
         deleteBtn.type = 'button';
@@ -370,18 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteBtn.setAttribute('data-id', link.id);
         deleteBtn.style.display = currentUserIsEditor ? 'flex' : 'none';
 
-
-
-        // Fallback images
         const imgUrl = link.image || 'https://via.placeholder.com/600x400/e5e5e0/111111?text=無圖片';
-        const faviconUrl = link.favicon || 'https://via.placeholder.com/32/e5e5e0/111111?text=+';
-        const domain = new URL(link.url).hostname.replace('www.', '').toUpperCase();
+        const hostname = new URL(link.url).hostname.replace('www.', '').toUpperCase();
 
         // Note Section
         const noteContainer = document.createElement('div');
         noteContainer.className = 'note-container';
 
-        // Note Text
         const noteSpan = document.createElement('span');
         noteSpan.className = 'card-note';
         noteSpan.innerHTML = link.note ? `⚠️ ${link.note}` : '';
@@ -416,29 +371,27 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         contentDiv.appendChild(noteContainer);
 
-        const summaryAndMeta = document.createElement('div');
-        summaryAndMeta.innerHTML = `
-            <p class="card-summary">${link.description}</p>
+        const summaryDiv = document.createElement('div');
+        summaryDiv.innerHTML = `
+            <p class="card-summary">${link.description || ''}</p>
             <div class="card-meta">
-                <img src="${faviconUrl}" alt="" class="card-favicon" onerror="this.style.display='none'">
-                <span>${domain}</span>
+                <span>${hostname}</span>
             </div>
         `;
-        contentDiv.appendChild(summaryAndMeta);
+        contentDiv.appendChild(summaryDiv);
 
         a.appendChild(contentDiv);
-
-        wrapper.appendChild(deleteBtn); // Append button first or last, position absolute handles it
+        wrapper.appendChild(deleteBtn);
         wrapper.appendChild(a);
 
         return wrapper;
     }
 
+    // --- Inline Editing Logic (Moved from old script) ---
     function toggleEditMode(container, linkId, currentNote) {
         if (container.querySelector('input')) return;
 
         container.classList.add('editing');
-        const originalHtml = container.innerHTML; // Note: we are wiping it
         container.innerHTML = '';
 
         const input = document.createElement('input');
@@ -457,7 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelBtn.className = 'note-cancel-btn';
         cancelBtn.type = 'button';
 
-        // Checkbox container
         const checkboxLabel = document.createElement('label');
         checkboxLabel.className = 'note-sync-label';
         checkboxLabel.style.display = 'flex';
@@ -476,26 +428,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Events
         input.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
-        checkboxLabel.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (e.target !== checkbox) checkbox.click(); }; // Helper for label click
+        checkboxLabel.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (e.target !== checkbox) checkbox.click(); };
         checkbox.onclick = (e) => { e.stopPropagation(); };
+
+        const doSave = () => {
+            const newNote = input.value.trim();
+            saveNoteInList(linkId, newNote, checkbox.checked);
+        };
 
         input.onkeypress = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                saveNote(linkId, input.value, container, checkbox.checked);
+                doSave();
             }
         };
 
         saveBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            saveNote(linkId, input.value, container, checkbox.checked);
+            doSave();
         };
 
         cancelBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            fetchLinks();
+            renderLinks(); // Re-render to restore original state
         };
 
         container.appendChild(input);
@@ -505,23 +462,77 @@ document.addEventListener('DOMContentLoaded', () => {
         input.focus();
     }
 
-    async function saveNote(linkId, newNote, container, addToNotice) {
-        try {
-            const response = await fetch(`/api/links/${linkId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ note: newNote, addToNotice: addToNotice })
-            });
+    function saveNoteInList(linkId, newNote, addToNotice) {
+        const link = linksData.find(l => l.id === linkId);
+        if (link) {
+            link.note = newNote;
+            saveLinksToStorage();
 
-            if (response.ok) {
-                fetchLinks();
-                if (addToNotice) fetchNotice();
-            } else {
-                showStatus('更新失敗');
+            if (addToNotice) {
+                const noticeLinkHtml = ` <a href='${link.url}' target='_blank' style='text-decoration: underline; color: inherit;'>[${link.title}]</a>`;
+                addNotice(newNote + noticeLinkHtml);
             }
-        } catch (error) {
-            console.error('Error updating note:', error);
-            showStatus('系統錯誤');
+
+            renderLinks();
+            showStatus('備註已更新');
         }
+    }
+
+    // --- Image Upload Logic ---
+    const imgUpload = document.getElementById('imgUpload');
+    const imgInput = document.getElementById('imgInput');
+
+    imgUpload.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showStatus('正在處理圖片...', false);
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const img = new Image();
+            img.onload = function () {
+                // Compress Image
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 600;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convert to Base64 (JPEG 0.7 quality)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+                // Set to input
+                imgInput.value = dataUrl;
+                showStatus('圖片已上傳');
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // --- Helper ---
+    function generateUUID() { // Simple UUID generator
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
 });
