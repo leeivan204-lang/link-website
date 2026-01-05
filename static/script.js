@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function logout() {
         localStorage.removeItem('is_editor');
-        window.location.reload();
+        location.href = './';
     }
 
     function updateUIForAuth() {
