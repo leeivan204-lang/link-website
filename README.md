@@ -1,5 +1,7 @@
 # 網頁連結轉運站 (Link Aggregation)
 
+[![Deploy static content to Pages](https://github.com/leeivan204-lang/link-website/actions/workflows/deploy.yml/badge.svg)](https://github.com/leeivan204-lang/link-website/actions/workflows/deploy.yml)
+
 這是一個用於收集並展示重要網頁連結的靜態網站專案。它具備 Python 後端管理模式與 GitHub Pages 靜態部署模式。
 
 ## 系統架構
