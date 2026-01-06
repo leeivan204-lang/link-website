@@ -291,16 +291,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', () => {
+            // 1. Export links
             downloadData('links.json', JSON.stringify(linksData, null, 2));
-            // Also export notices if any
+
+            // 2. Export notices
             if (noticesData.length > 0) {
-                // Convert simple text notices back to string format if possible for notice.txt?
-                // Or just use JSON which app.py supports. Let's stick to links.json first as it's the main request.
-                // Actually, let's export notices as notice.txt if it's simple, or JSON if complex.
-                // Ideally we just tell the user to only worry about links.json for now.
-                // Let's just do links.json to avoid confusion unless they ask.
+                // We save notices as JSON to preserve IDs and structure
+                downloadData('notice.txt', JSON.stringify(noticesData, null, 2));
             }
-            alert('links.json 已下載！\n請將此檔案取代您專案資料夾中的 links.json，然後上傳到 GitHub。');
+
+            alert('資料匯出完成！\n\n1. "links.json" (連結)\n2. "notice.txt" (公告)\n\n請將這兩個檔案覆蓋到您的專案資料夾中，然後上傳到 GitHub。');
         });
     }
 
