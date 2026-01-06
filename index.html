@@ -93,10 +93,32 @@
         </div>
     </div>
 
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
     <script src="./static/script.js"></script>
     <script>
-        // Inject Server Data for Static Site
-        window.SERVER_DATA = null;
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAST9xMgg29racOqe3ivFRUZN8NU-GMoZQ",
+            authDomain: "software-73cc3.firebaseapp.com",
+            projectId: "software-73cc3",
+            storageBucket: "software-73cc3.firebasestorage.app",
+            messagingSenderId: "869562371892",
+            appId: "1:869562371892:web:44c9152789762350d01f61",
+            measurementId: "G-5JCJDTR6FE"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Make globally available for script.js
+        window.db = db;
+        window.auth = auth;
 
         // Simple script to set today's date in proper format
         const dateDisplay = document.getElementById('date-display');

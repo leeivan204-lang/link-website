@@ -20,117 +20,85 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
 
     async function init() {
-        checkAuth();
-        await loadFromStorage();
-        renderLinks();
-        renderNotices();
+        setupAuthListener();
+        setupDataListeners();
     }
 
-    async function loadFromStorage() {
-        // 1. Try to load from window.SERVER_DATA (Static Site / Server Rendered)
-        if (window.SERVER_DATA) {
-            // We prioritize server data if available (fresh deployment)
-            if (!localStorage.getItem('site_links') && window.SERVER_DATA.links) {
-                linksData = window.SERVER_DATA.links;
-                saveLinksToStorage(); // Save to local storage for future edits
-            } else {
-                // Load from storage as usual
-                const storedLinks = localStorage.getItem('site_links');
-                linksData = storedLinks ? JSON.parse(storedLinks) : [];
-            }
+    function setupDataListeners() {
+        if (!window.db) {
+            console.error("Firebase DB not initialized!");
+            return;
+        }
 
-            if (!localStorage.getItem('site_notices') && window.SERVER_DATA.notices) {
-                noticesData = window.SERVER_DATA.notices;
-                saveNoticesToStorage();
-            } else {
-                const storedNotices = localStorage.getItem('site_notices');
-                noticesData = storedNotices ? JSON.parse(storedNotices) : [];
-            }
-        } else {
-            // Fallback for purely local dev without backend
-            // Load Links
-            const storedLinks = localStorage.getItem('site_links');
-            if (storedLinks) {
-                linksData = JSON.parse(storedLinks);
-            } else {
-                // Fetch links.json
-                try {
-                    const response = await fetch('./links.json');
-                    if (response.ok) {
-                        linksData = await response.json();
-                    }
-                } catch (e) {
-                    console.error("Failed to load links.json", e);
-                }
-            }
+        // 1. Links Listener
+        window.db.collection('links').orderBy('created_at', 'desc').onSnapshot((snapshot) => {
+            linksData = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.id = doc.id; // Use Firestore ID
+                linksData.push(data);
+            });
+            renderLinks();
+            if (loadingState) loadingState.style.display = 'none';
+        }, (error) => {
+            console.error("Error getting links:", error);
+            showStatus("讀取連結失敗: " + error.message);
+        });
 
-            // Load Notices
-            const storedNotices = localStorage.getItem('site_notices');
-            if (storedNotices) {
-                noticesData = JSON.parse(storedNotices);
+        // 2. Notices Listener
+        window.db.collection('notices').orderBy('created_at', 'desc').onSnapshot((snapshot) => {
+            noticesData = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.id = doc.id;
+                noticesData.push(data);
+            });
+            renderNotices();
+        });
+    }
+
+    // --- Auth Logic (Firebase) ---
+    function setupAuthListener() {
+        if (!window.auth) return;
+
+        window.auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is signed in.
+                currentUserIsEditor = true;
+                authLink.textContent = '[ 登出系統 ]';
+                authLink.href = '#';
+                authLink.onclick = (e) => {
+                    e.preventDefault();
+                    window.auth.signOut().then(() => {
+                        showStatus('已登出');
+                    });
+                };
             } else {
-                // Fetch notice.txt
-                try {
-                    const response = await fetch('./notice.txt');
-                    if (response.ok) {
-                        const text = await response.text();
-                        if (text.trim()) {
-                            noticesData = [{
-                                id: generateUUID(),
-                                content: text.trim(),
-                                created_at: Date.now() / 1000
-                            }];
+                // User is signed out.
+                currentUserIsEditor = false;
+                authLink.textContent = '[ 編輯者登入 ]';
+                authLink.href = '#';
+                authLink.onclick = (e) => {
+                    e.preventDefault();
+                    const email = prompt("請輸入管理員 Email:");
+                    if (email) {
+                        const pwd = prompt("請輸入密碼:");
+                        if (pwd) {
+                            window.auth.signInWithEmailAndPassword(email, pwd)
+                                .then(() => showStatus("登入成功"))
+                                .catch((e) => alert("登入失敗: " + e.message));
                         }
                     }
-                } catch (e) {
-                    console.error("Failed to load notice.txt", e);
-                }
+                };
             }
-        }
-
-        // Hide loading
-        if (loadingState) loadingState.style.display = 'none';
-    }
-
-    function saveLinksToStorage() {
-        localStorage.setItem('site_links', JSON.stringify(linksData));
-    }
-
-    function saveNoticesToStorage() {
-        localStorage.setItem('site_notices', JSON.stringify(noticesData));
-    }
-
-    // --- Auth Logic ---
-    function checkAuth() {
-        // Simple client-side check from LocalStorage set by login.html
-        currentUserIsEditor = localStorage.getItem('is_editor') === 'true';
-
-        updateUIForAuth();
-
-        if (currentUserIsEditor) {
-            authLink.textContent = '[ 登出系統 ]';
-            authLink.href = '#';
-            authLink.onclick = (e) => {
-                e.preventDefault();
-                logout();
-            };
-        } else {
-            authLink.textContent = '[ 編輯者登入 ]';
-            authLink.href = 'login.html';
-        }
-    }
-
-    function logout() {
-        localStorage.removeItem('is_editor');
-        location.href = './';
+            updateUIForAuth();
+        });
     }
 
     function updateUIForAuth() {
-        // Update UI visibility
         document.querySelectorAll('.editor-only').forEach(el => {
             el.style.display = currentUserIsEditor ? 'flex' : 'none';
         });
-        // Update specific elements that might be inline
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.style.display = currentUserIsEditor ? 'flex' : 'none';
         });
@@ -193,10 +161,20 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const confirmed = await showConfirm('確定要清除所有公告嗎？');
             if (confirmed) {
-                noticesData = [];
-                saveNoticesToStorage();
-                renderNotices();
-                showStatus('公告已清除');
+                const batch = window.db.batch();
+                noticesData.forEach(n => {
+                    if (n.id) {
+                        const ref = window.db.collection('notices').doc(n.id);
+                        batch.delete(ref);
+                    }
+                });
+                try {
+                    await batch.commit();
+                    showStatus('公告已清除');
+                } catch (err) {
+                    console.error(err);
+                    showStatus('清除失敗: ' + err.message);
+                }
             }
             return;
         }
@@ -206,14 +184,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deleteBtn) {
             e.preventDefault();
             e.stopPropagation();
-            const linkId = parseInt(deleteBtn.getAttribute('data-id'));
+            const linkId = deleteBtn.getAttribute('data-id');
             if (linkId) {
                 const confirmed = await showConfirm('確定要永久刪除這個連結嗎？');
                 if (confirmed) {
-                    linksData = linksData.filter(l => l.id !== linkId);
-                    saveLinksToStorage();
-                    renderLinks();
-                    showStatus('刪除成功');
+                    try {
+                        await window.db.collection('links').doc(linkId).delete();
+                        showStatus('刪除成功');
+                    } catch (err) {
+                        console.error(err);
+                        showStatus('刪除失敗: ' + err.message);
+                    }
                 }
             }
             return;
@@ -230,25 +211,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function addNotice(text) {
-        const newNotice = {
-            id: generateUUID(),
-            content: text,
-            created_at: Date.now() / 1000
-        };
-        noticesData.push(newNotice);
-        saveNoticesToStorage();
-        renderNotices();
+    async function addNotice(text) {
+        try {
+            await window.db.collection('notices').add({
+                content: text,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showStatus('公告已發布');
+        } catch (err) {
+            console.error(err);
+            showStatus('發布公告失敗: ' + err.message);
+        }
     }
 
-    function deleteNotice(id) {
-        noticesData = noticesData.filter(n => n.id !== id);
-        saveNoticesToStorage();
-        renderNotices();
+    async function deleteNotice(id) {
+        try {
+            await window.db.collection('notices').doc(id).delete();
+            showStatus('公告已刪除');
+        } catch (err) {
+            console.error(err);
+            showStatus('刪除公告失敗');
+        }
     }
-
-    // Allow deleting notice via onclick in rendered HTML, but use delegation if possible.
-    // Since we re-render, delegation is cleaner, but let's stick to the inline onclick binding used below for simplicity in porting.
 
     function renderNotices() {
         if (!noticeDisplay) return;
@@ -290,17 +274,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Link Logic ---
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) {
+        exportBtn.innerText = '備份資料 (JSON)';
+        // Remove Publish button if it exists
+        const siblingBtn = exportBtn.parentNode.querySelector('button[title*="Git Push"]');
+        if (siblingBtn) siblingBtn.remove();
+
         exportBtn.addEventListener('click', () => {
-            // 1. Export links
-            downloadData('links.json', JSON.stringify(linksData, null, 2));
-
-            // 2. Export notices
+            downloadData('links_backup.json', JSON.stringify(linksData, null, 2));
             if (noticesData.length > 0) {
-                // We save notices as JSON to preserve IDs and structure
-                downloadData('notice.txt', JSON.stringify(noticesData, null, 2));
+                downloadData('notices_backup.json', JSON.stringify(noticesData, null, 2));
             }
-
-            alert('資料匯出完成！\n\n1. "links.json" (連結)\n2. "notice.txt" (公告)\n\n請將這兩個檔案覆蓋到您的專案資料夾中，然後上傳到 GitHub。');
+            alert('資料匯出完成！這是您目前資料庫的快照。');
         });
     }
 
@@ -316,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addBtn.addEventListener('click', handleAddLink);
 
-    // Keypress for inputs
+    // Keypress
     [urlInput, document.getElementById('titleInput')].forEach(input => {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -326,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function handleAddLink() {
+    async function handleAddLink() {
         const url = urlInput.value.trim();
         const title = document.getElementById('titleInput').value.trim();
         const desc = document.getElementById('descInput').value.trim();
@@ -338,10 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const newId = linksData.length > 0 ? Math.max(...linksData.map(l => l.id)) + 1 : 1;
-
-        // Smart Notice Logic: Check for date pattern
-        // Python: r'(\d{1,4}[-/]\d{1,2})'
         const datePattern = /(\d{1,4}[-\/]\d{1,2})/;
         if (note && datePattern.test(note)) {
             const noticeLinkHtml = ` <a href='${url}' target='_blank' style='text-decoration: underline; color: inherit;'>[${title}]</a>`;
@@ -349,37 +329,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const newLink = {
-            id: newId,
             url: url,
             title: title,
             description: desc,
             image: img || '',
-            favicon: '',
-            note: note
+            note: note,
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        linksData.push(newLink);
-        saveLinksToStorage();
-        renderLinks();
+        try {
+            await window.db.collection('links').add(newLink);
+            showStatus('連結已發布');
 
-        // Clear inputs
-        urlInput.value = '';
-        document.getElementById('titleInput').value = '';
-        document.getElementById('descInput').value = '';
-        document.getElementById('imgInput').value = '';
-        if (linkNoteInput) linkNoteInput.value = '';
+            // Clear inputs
+            urlInput.value = '';
+            document.getElementById('titleInput').value = '';
+            document.getElementById('descInput').value = '';
+            document.getElementById('imgInput').value = '';
+            if (linkNoteInput) linkNoteInput.value = '';
+            urlInput.focus();
 
-        showStatus('發布成功');
-        urlInput.focus();
+        } catch (err) {
+            console.error(err);
+            showStatus('發布連結失敗: ' + err.message);
+        }
     }
 
     function renderLinks() {
         if (!cardsContainer) return;
         cardsContainer.innerHTML = '';
-        // Note: loadingState is removed/hidden by init()
 
-        const sortedLinks = [...linksData].reverse();
-        sortedLinks.forEach(link => {
+        linksData.forEach(link => {
             const card = createCardElement(link);
             cardsContainer.appendChild(card);
         });
@@ -404,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const imgUrl = link.image || 'https://via.placeholder.com/600x400/e5e5e0/111111?text=無圖片';
         const hostname = new URL(link.url).hostname.replace('www.', '').toUpperCase();
 
-        // Note Section
         const noteContainer = document.createElement('div');
         noteContainer.className = 'note-container';
 
@@ -414,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
         noteSpan.style.display = link.note ? 'inline-block' : 'none';
         noteContainer.appendChild(noteSpan);
 
-        // Edit Button
         const editBtn = document.createElement('button');
         editBtn.className = 'edit-note-btn editor-only';
         editBtn.innerHTML = '✎';
@@ -427,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         noteContainer.appendChild(editBtn);
 
-        // Content
         const contentDiv = document.createElement('div');
         contentDiv.style.flex = '1';
         contentDiv.style.display = 'flex';
@@ -458,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return wrapper;
     }
 
-    // --- Inline Editing Logic (Moved from old script) ---
     function toggleEditMode(container, linkId, currentNote) {
         if (container.querySelector('input')) return;
 
@@ -497,7 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
         checkboxLabel.appendChild(checkbox);
         checkboxLabel.appendChild(document.createTextNode('同步公告'));
 
-        // Events
         input.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
         checkboxLabel.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (e.target !== checkbox) checkbox.click(); };
         checkbox.onclick = (e) => { e.stopPropagation(); };
@@ -523,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            renderLinks(); // Re-render to restore original state
+            renderLinks();
         };
 
         container.appendChild(input);
@@ -533,23 +508,26 @@ document.addEventListener('DOMContentLoaded', () => {
         input.focus();
     }
 
-    function saveNoteInList(linkId, newNote, addToNotice) {
-        const link = linksData.find(l => l.id === linkId);
-        if (link) {
-            link.note = newNote;
-            saveLinksToStorage();
+    async function saveNoteInList(linkId, newNote, addToNotice) {
+        try {
+            await window.db.collection('links').doc(linkId).update({
+                note: newNote
+            });
 
             if (addToNotice) {
-                const noticeLinkHtml = ` <a href='${link.url}' target='_blank' style='text-decoration: underline; color: inherit;'>[${link.title}]</a>`;
-                addNotice(newNote + noticeLinkHtml);
+                const link = linksData.find(l => l.id === linkId);
+                if (link) {
+                    const noticeLinkHtml = ` <a href='${link.url}' target='_blank' style='text-decoration: underline; color: inherit;'>[${link.title}]</a>`;
+                    addNotice(newNote + noticeLinkHtml);
+                }
             }
-
-            renderLinks();
-            showStatus('備註已更新');
+            showStatus('備註已雲端更新');
+        } catch (err) {
+            console.error(err);
+            showStatus('更新失敗: ' + err.message);
         }
     }
 
-    // --- Image Upload Logic ---
     const imgUpload = document.getElementById('imgUpload');
     const imgInput = document.getElementById('imgInput');
 
@@ -563,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = function (event) {
             const img = new Image();
             img.onload = function () {
-                // Compress Image
                 const canvas = document.createElement('canvas');
                 const MAX_WIDTH = 800;
                 const MAX_HEIGHT = 600;
@@ -586,11 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-
-                // Convert to Base64 (JPEG 0.7 quality)
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-                // Set to input
                 imgInput.value = dataUrl;
                 showStatus('圖片已上傳');
             };
@@ -599,8 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
 
-    // --- Helper ---
-    function generateUUID() { // Simple UUID generator
+    function generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);

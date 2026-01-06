@@ -122,5 +122,25 @@ def api_delete_notice(notice_id):
     save_notices(notices)
     return jsonify({'success': True})
 
+@app.route('/api/publish', methods=['POST'])
+def api_publish():
+    import subprocess
+    try:
+        # 1. Build Static Site
+        # subprocess.check_call(['python', 'build.py']) # Optional, if we want to ensure build before push, but usually GitHub Action does it.
+        # Check if user wants local build or remote build. Assuming remote build via GitHub Actions for now as user mentioned it.
+        # But if they are pushing files, they need to push links.json.
+        
+        # 2. Git Commands
+        subprocess.check_call(['git', 'add', 'links.json', 'notice.txt'])
+        subprocess.check_call(['git', 'commit', '-m', 'Content Update via Web Interface'])
+        subprocess.check_call(['git', 'push'])
+        
+        return jsonify({'success': True, 'message': 'Deployment triggered successfully!'})
+    except subprocess.CalledProcessError as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

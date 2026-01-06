@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網頁連結轉運站 | Link Aggregation</title>
+    <title>網�????轉�?�?| Link Aggregation</title>
     <link rel="stylesheet" href="./static/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -14,24 +14,24 @@
     <div class="container">
         <header class="newsprint-header">
             <div class="header-meta">
-                <span>第一版 Vol. 1.0</span>
-                <span>台北發行 Taipei Edition</span>
+                <span>第�???Vol. 1.0</span>
+                <span>?��??��? Taipei Edition</span>
                 <span id="date-display">2026-01-05</span>
             </div>
-            <h1 class="title-display">網頁連結轉運站</h1>
-            <p class="subtitle">"所有值得一點的連結"</p>
+            <h1 class="title-display">網�????轉�?�?/h1>
+            <p class="subtitle">"?�?�值�?一點�????"</p>
         </header>
 
         <!-- Notice Board Section -->
         <section class="notice-board-section">
-            <div class="notice-label">重要事項提醒</div>
+            <div class="notice-label">?��?事�??��?</div>
             <div class="notice-content" id="noticeDisplay">
-                <span style="color: var(--neutral-500); font-weight: normal; font-size: 1rem;">(正在讀取公告...)</span>
+                <span style="color: var(--neutral-500); font-weight: normal; font-size: 1rem;">(�?��讀?�公??..)</span>
             </div>
 
             <div class="notice-edit-group editor-only" style="display: none;">
-                <input type="text" id="noticeInput" class="notice-input" placeholder="更新公告內容...">
-                <button type="button" id="saveNoticeBtn" class="notice-btn">新增</button>
+                <input type="text" id="noticeInput" class="notice-input" placeholder="?�新?��??�容...">
+                <button type="button" id="saveNoticeBtn" class="notice-btn">?��?</button>
                 <button type="button" id="clearNoticeBtn" class="notice-btn"
                     style="color: var(--editorial-red);">清除</button>
             </div>
@@ -39,13 +39,13 @@
 
         <section class="input-section editor-only" style="display: none;">
             <div class="input-group">
-                <input type="text" id="urlInput" class="editorial-input" placeholder="在此貼上網址..." autocomplete="off">
-                <input type="text" id="titleInput" class="editorial-input" placeholder="網站標題 (必填)..."
+                <input type="text" id="urlInput" class="editorial-input" placeholder="?�此貼�?網�?..." autocomplete="off">
+                <input type="text" id="titleInput" class="editorial-input" placeholder="網�?標�? (必填)..."
                     autocomplete="off">
-                <input type="text" id="descInput" class="editorial-input" placeholder="網站描述/備註 (選填)..."
+                <input type="text" id="descInput" class="editorial-input" placeholder="網�??�述/?�註 (?�填)..."
                     autocomplete="off">
                 <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="imgInput" class="editorial-input" placeholder="圖片網址 (選填)..."
+                    <input type="text" id="imgInput" class="editorial-input" placeholder="?��?網�? (?�填)..."
                         autocomplete="off" style="flex: 1;">
                     <label for="imgUpload" class="editorial-btn"
                         style="width: auto; padding: 0 1rem; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;">
@@ -53,27 +53,27 @@
                     </label>
                     <input type="file" id="imgUpload" accept="image/*" style="display: none;">
                 </div>
-                <input type="text" id="linkNoteInput" class="editorial-input" placeholder="連結注意事項 (如: 1/15 需閱讀)..."
+                <input type="text" id="linkNoteInput" class="editorial-input" placeholder="???注�?事�? (�? 1/15 ?�?��?)..."
                     autocomplete="off">
             </div>
             <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <button type="button" id="addBtn" class="editorial-btn" style="flex: 2;">發布連結</button>
+                <button type="button" id="addBtn" class="editorial-btn" style="flex: 2;">?��????</button>
                 <button type="button" id="exportBtn" class="editorial-btn"
-                    style="flex: 1; background-color: var(--neutral-600);">匯出資料</button>
+                    style="flex: 1; background-color: var(--neutral-600);">?�出資�?</button>
             </div>
         </section>
 
         <main id="cardsContainer" class="news-grid">
             <div class="loading-indicator" id="js-loading-indicator">
-                [ 系統狀態：正在讀取本機資料庫... ]
+                [ 系統?�?��?�?��讀?�本機�??�庫... ]
             </div>
         </main>
 
         <footer>
-            <span>&copy; 2026 網頁連結轉運站專案. 數位印刷發行</span>
+            <span>&copy; 2026 網�????轉�?站�?�? ?��??�刷?��?</span>
             <br><br>
             <a href="login.html" id="authLink"
-                style="color: var(--neutral-500); text-decoration: none; font-size: 0.7rem;">[ 編輯者登入 ]</a>
+                style="color: var(--neutral-500); text-decoration: none; font-size: 0.7rem;">[ 編輯?�登??]</a>
         </footer>
     </div>
 
@@ -83,12 +83,12 @@
     <!-- Custom Confirm Modal -->
     <div id="customConfirmModal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
-            <h3 class="modal-title">確認操作</h3>
-            <p id="modalMessage" class="modal-message">確定要執行此動作嗎？</p>
+            <h3 class="modal-title">確�??��?</h3>
+            <p id="modalMessage" class="modal-message">確�?要執行此?��??��?</p>
             <div class="modal-actions">
-                <button id="modalCancelBtn" class="notice-btn">取消</button>
+                <button id="modalCancelBtn" class="notice-btn">?��?</button>
                 <button id="modalConfirmBtn" class="notice-btn"
-                    style="background: var(--ink-black); color: white;">確定</button>
+                    style="background: var(--ink-black); color: white;">確�?</button>
             </div>
         </div>
     </div>
@@ -96,10 +96,9 @@
     <script src="./static/script.js"></script>
     <script>
         // Inject Server Data for Static Site
-        // Inject Server Data for Static Site
         window.SERVER_DATA = {
             "links": {{ links | tojson | safe }},
-        "notices": { { notices | tojson | safe } }
+        "notices": {{ notices | tojson | safe }}
         };
 
         // Simple script to set today's date in proper format
