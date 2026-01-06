@@ -19,46 +19,49 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     init();
 
-    function init() {
+    async function init() {
         checkAuth();
-        loadFromStorage();
+        await loadFromStorage();
         renderLinks();
         renderNotices();
     }
 
-    function loadFromStorage() {
+    async function loadFromStorage() {
         // 1. Try to load from window.SERVER_DATA (Static Site / Server Rendered)
         if (window.SERVER_DATA) {
-             // We prioritize server data if available (fresh deployment)
-             // But we also want to respect local edits if we are in "editor mode"?
-             // For simplicity in this static deployment use case, let's use SERVER_DATA as the base.
-             // However, to keep the "local" feeling, we might want to merge.
-             // For now: If LocalStorage is empty, use Server Data.
-             
-             if (!localStorage.getItem('site_links') && window.SERVER_DATA.links) {
-                 linksData = window.SERVER_DATA.links;
-                 saveLinksToStorage(); // Save to local storage for future edits
-             } else {
-                 // Load from storage as usual
-                 const storedLinks = localStorage.getItem('site_links');
-                 linksData = storedLinks ? JSON.parse(storedLinks) : [];
-             }
+            // We prioritize server data if available (fresh deployment)
+            if (!localStorage.getItem('site_links') && window.SERVER_DATA.links) {
+                linksData = window.SERVER_DATA.links;
+                saveLinksToStorage(); // Save to local storage for future edits
+            } else {
+                // Load from storage as usual
+                const storedLinks = localStorage.getItem('site_links');
+                linksData = storedLinks ? JSON.parse(storedLinks) : [];
+            }
 
-             if (!localStorage.getItem('site_notices') && window.SERVER_DATA.notices) {
-                 noticesData = window.SERVER_DATA.notices;
-                 saveNoticesToStorage();
-             } else {
-                 const storedNotices = localStorage.getItem('site_notices');
-                 noticesData = storedNotices ? JSON.parse(storedNotices) : [];
-             }
+            if (!localStorage.getItem('site_notices') && window.SERVER_DATA.notices) {
+                noticesData = window.SERVER_DATA.notices;
+                saveNoticesToStorage();
+            } else {
+                const storedNotices = localStorage.getItem('site_notices');
+                noticesData = storedNotices ? JSON.parse(storedNotices) : [];
+            }
         } else {
-             // Fallback for purely local dev without backend
+            // Fallback for purely local dev without backend
             // Load Links
             const storedLinks = localStorage.getItem('site_links');
             if (storedLinks) {
                 linksData = JSON.parse(storedLinks);
             } else {
-                linksData = [];
+                // Fetch links.json
+                try {
+                    const response = await fetch('./links.json');
+                    if (response.ok) {
+                        linksData = await response.json();
+                    }
+                } catch (e) {
+                    console.error("Failed to load links.json", e);
+                }
             }
 
             // Load Notices
@@ -66,7 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (storedNotices) {
                 noticesData = JSON.parse(storedNotices);
             } else {
-                noticesData = [];
+                // Fetch notice.txt
+                try {
+                    const response = await fetch('./notice.txt');
+                    if (response.ok) {
+                        const text = await response.text();
+                        if (text.trim()) {
+                            noticesData = [{
+                                id: generateUUID(),
+                                content: text.trim(),
+                                created_at: Date.now() / 1000
+                            }];
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load notice.txt", e);
+                }
             }
         }
 
