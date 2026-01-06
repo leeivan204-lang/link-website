@@ -56,7 +56,11 @@
                 <input type="text" id="linkNoteInput" class="editorial-input" placeholder="連結注意事項 (如: 1/15 需閱讀)..."
                     autocomplete="off">
             </div>
-            <button type="button" id="addBtn" class="editorial-btn">發布連結</button>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="button" id="addBtn" class="editorial-btn" style="flex: 2;">發布連結</button>
+                <button type="button" id="exportBtn" class="editorial-btn"
+                    style="flex: 1; background-color: var(--neutral-600);">匯出資料</button>
+            </div>
         </section>
 
         <main id="cardsContainer" class="news-grid">
