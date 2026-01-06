@@ -288,6 +288,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Link Logic ---
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            downloadData('links.json', JSON.stringify(linksData, null, 2));
+            // Also export notices if any
+            if (noticesData.length > 0) {
+                // Convert simple text notices back to string format if possible for notice.txt?
+                // Or just use JSON which app.py supports. Let's stick to links.json first as it's the main request.
+                // Actually, let's export notices as notice.txt if it's simple, or JSON if complex.
+                // Ideally we just tell the user to only worry about links.json for now.
+                // Let's just do links.json to avoid confusion unless they ask.
+            }
+            alert('links.json 已下載！\n請將此檔案取代您專案資料夾中的 links.json，然後上傳到 GitHub。');
+        });
+    }
+
+    function downloadData(filename, content) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+
     addBtn.addEventListener('click', handleAddLink);
 
     // Keypress for inputs
