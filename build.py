@@ -16,6 +16,12 @@ if __name__ == '__main__':
     # Post-processing: Make sure CNAME or other static files are copied if needed
     # Note: Flask-Frozen usually copies 'static' folder automatically
     
+    # Copy data files to build directory so fetch() works if needed
+    for filename in ['links.json', 'notice.txt']:
+        if os.path.exists(filename):
+            shutil.copy(filename, os.path.join(app.config['FREEZER_DESTINATION'], filename))
+            print(f"Copied {filename} to build directory.")
+    
     # Create .nojekyll to disable GitHub Pages Jekyll processing
     with open(os.path.join(app.config['FREEZER_DESTINATION'], '.nojekyll'), 'w') as f:
         f.write('')

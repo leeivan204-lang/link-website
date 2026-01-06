@@ -92,7 +92,11 @@
     <script src="./static/script.js"></script>
     <script>
         // Inject Server Data for Static Site
-        window.SERVER_DATA = null;
+        // Inject Server Data for Static Site
+        window.SERVER_DATA = {
+            "links": {{ links | tojson | safe }},
+        "notices": { { notices | tojson | safe } }
+        };
 
         // Simple script to set today's date in proper format
         const dateDisplay = document.getElementById('date-display');
