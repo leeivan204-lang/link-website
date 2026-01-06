@@ -80,15 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 authLink.href = '#';
                 authLink.onclick = (e) => {
                     e.preventDefault();
-                    const email = prompt("請輸入管理員 Email:");
-                    if (email) {
-                        const pwd = prompt("請輸入密碼:");
-                        if (pwd) {
-                            window.auth.signInWithEmailAndPassword(email, pwd)
-                                .then(() => showStatus("登入成功"))
-                                .catch((e) => alert("登入失敗: " + e.message));
-                        }
-                    }
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    window.auth.signInWithPopup(provider)
+                        .then(() => showStatus("Google 登入成功"))
+                        .catch((e) => alert("登入失敗: " + e.message));
                 };
             }
             updateUIForAuth();
