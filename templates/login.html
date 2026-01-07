@@ -45,52 +45,16 @@
         <div class="login-container">
             <h1 class="login-title">編輯者登入</h1>
             <div class="login-form">
-                <input type="password" id="passwordInput" class="editorial-input" placeholder="請輸入密碼"
-                    style="text-align: center;">
-                <button id="loginBtn" class="editorial-btn">驗證身分</button>
+                <p>本系統已改用 Google 帳號驗證。</p>
+                <p>請返回首頁，點擊底部的「編輯者登入」連結即可。</p>
+                <a href="./" class="editorial-btn" style="text-decoration: none; color: white;">返回首頁</a>
             </div>
-            <p id="errorMsg"
-                style="color: var(--editorial-red); margin-top: 1rem; display: none; font-family: var(--font-mono); font-size: 0.8rem;">
-            </p>
         </div>
 
         <footer>
             <a href="./" style="color: var(--ink-black); text-decoration: none;">&larr; 返回首頁</a>
         </footer>
     </div>
-
-    <script>
-        const loginBtn = document.getElementById('loginBtn');
-        const passwordInput = document.getElementById('passwordInput');
-        const errorMsg = document.getElementById('errorMsg');
-
-        // Hashed password (SHA-256) baked from .env
-        const EDITOR_PASSWORD_HASH = "{{ editor_password_hash }}";
-
-        async function performLogin() {
-            const password = passwordInput.value;
-
-            // Hash the input to compare
-            const msgBuffer = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-            if (hashHex === EDITOR_PASSWORD_HASH) {
-                localStorage.setItem('is_editor', 'true');
-                window.location.href = './';
-            } else {
-                errorMsg.textContent = '密碼錯誤';
-                errorMsg.style.display = 'block';
-                localStorage.removeItem('is_editor');
-            }
-        }
-
-        loginBtn.addEventListener('click', performLogin);
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performLogin();
-        });
-    </script>
 </body>
 
 </html>

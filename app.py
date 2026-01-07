@@ -70,20 +70,14 @@ def index():
                            links=links, 
                            notices=notices, 
                            is_frozen=False,
-                           firebase_messaging_sender_id=os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
-                           firebase_app_id=os.environ.get('FIREBASE_APP_ID', ''),
-                           firebase_measurement_id=os.environ.get('FIREBASE_MEASUREMENT_ID', '')
+                           firebase_config=firebase_config
                            )
 
 import hashlib
 
 @app.route('/login.html')
 def login():
-    # Get password from env
-    pwd = os.environ.get('EDITOR_PASSWORD', 'admin')
-    # Hash it so plain text isn't in source code
-    pwd_hash = hashlib.sha256(pwd.encode()).hexdigest()
-    return render_template('login.html', editor_password_hash=pwd_hash)
+    return render_template('login.html')
 
 # --- API for Local CMS ---
 @app.route('/api/links', methods=['GET'])
