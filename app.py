@@ -57,7 +57,23 @@ def index():
     links = load_links()
     notices = load_notices()
     # "is_frozen" context variable helps template distinguish logic if needed
-    return render_template('index.html', links=links, notices=notices, is_frozen=False)
+    firebase_config = {
+        'apiKey': os.environ.get('FIREBASE_API_KEY'),
+        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN'),
+        'projectId': os.environ.get('FIREBASE_PROJECT_ID'),
+        'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET'),
+        'messagingSenderId': os.environ.get('FIREBASE_MESSAGING_SENDER_ID'),
+        'appId': os.environ.get('FIREBASE_APP_ID'),
+        'measurementId': os.environ.get('FIREBASE_MEASUREMENT_ID')
+    }
+    return render_template('index.html', 
+                           links=links, 
+                           notices=notices, 
+                           is_frozen=False,
+                           firebase_messaging_sender_id=os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+                           firebase_app_id=os.environ.get('FIREBASE_APP_ID', ''),
+                           firebase_measurement_id=os.environ.get('FIREBASE_MEASUREMENT_ID', '')
+                           )
 
 import hashlib
 

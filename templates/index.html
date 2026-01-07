@@ -102,13 +102,13 @@
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyAST9xMgg29racOqe3ivFRUZN8NU-GMoZQ",
-            authDomain: "software-73cc3.firebaseapp.com",
-            projectId: "software-73cc3",
-            storageBucket: "software-73cc3.firebasestorage.app",
-            messagingSenderId: "869562371892",
-            appId: "1:869562371892:web:44c9152789762350d01f61",
-            measurementId: "G-5JCJDTR6FE"
+            apiKey: "{{ firebase_config.apiKey }}",
+            authDomain: "{{ firebase_config.authDomain }}",
+            projectId: "{{ firebase_config.projectId }}",
+            storageBucket: "{{ firebase_config.storageBucket }}",
+            messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+            appId: "{{ firebase_config.appId }}",
+            measurementId: "{{ firebase_config.measurementId }}"
         };
 
         // Initialize Firebase
